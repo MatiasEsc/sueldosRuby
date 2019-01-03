@@ -1,226 +1,170 @@
 require "cucumber"
 
+class Retencion
+
+  @@LEY19032 = 0.03
+  @@OBRA_SOCIAL = 0.03
+  @@JUBILACIOn = 0.11
+  @@MIN_IMP = 30000
+
+  # devuelve el sueldo con descuentos aplicados
+  def aplicar(sueldoEnBruto)
+    @sueldoConRetenciones = sueldoEnBruto - (sueldoEnBruto * (@@JUBILACIOn + @@LEY19032 + @@OBRA_SOCIAL))
+    @sueldoConRetenciones - self.impuestoGanancias(sueldoEnBruto)
+  end
+
+  def impuestoGanancias(sueldoEnBruto)
+    if self.sueldoBruto > 30000
+      (self.sueldoBruto - 30000) * 0.2
+    else
+      0
+    end
+  end
+
+end
+
 class Peon
 
-  def initialize(hora,valor)
-    @horasTrabajadas = hora
-    @valorXHora = valor
+  @@valorXhora
+  @@horasTrabajadas
+  @@estaAfiliado
+
+  def initialize(hora, valor, estaAfiliado)
+    @@horasTrabajadas = hora
+    @@valorXHora = valor
+    @@estaAfiliado = estaAfiliado
   end
 
   def sueldoBruto
     return @sueldoBruto = @horasTrabajadas * @valorXHora
   end
 
-  def impuestoGanancias
-    if self.sueldoBruto > 30000
-      @impuestoGanancias = (self.sueldoBruto - 30000) * 0.2
+  def descuentoPorAfiliacion
+    if @estaAfiliado
+      0.01
     else
-      @impuestoGanancias = 0
-    end
-  end
-
-  def afiliadoAlGremio?(valor)
-    if  valor == true
-      @descuentoGremio = 0.01
-    else
-      @descuentoGremio = 0
+      0
     end
   end
 
   def sueldoNeto
-    @sueldoNeto = @sueldoBruto - ((self.sueldoBruto * (0.17 + @descuentoGremio)) - @impuestoGanancias)
+    @retenciones = Retencion.new
+    @sueldoNeto = @retenciones.aplicar(self.sueldoBruto)
   end
 end
 
-class MedioOficial
+class MedioOficial < Peon
 
-  def initialize(hora,valor)
-    @horasTrabajadas = hora
-    @valorXHora = valor * 0.05 + valor
+  def initialize(hora, valor)
+    @@horasTrabajadas = hora
+    @@valorXHora = @@valorXHora + (@@valorXHora * 0.05)
+  end
+
+end
+
+class Oficial < Peon
+
+  @@cumplioObjetivo
+
+  def initialize(hora, valor, estaAfiliado)
+    super
+    @@valorXHora = @@valorXHora * 0.1 + @@valorXHora
+    @@CumplioObjetivo = true
   end
 
   def sueldoBruto
-    return @sueldoBruto = @horasTrabajadas * @valorXHora
-  end
-
-  def impuestoGanancias
-    if self.sueldoBruto > 30000
-      @impuestoGanancias = (self.sueldoBruto - 30000) * 0.2
+    @SueldoBrutoBase = @@horasTrabajadas * @@valorXHora
+    if @@CumplioObjetivo
+      return @SueldoBrutoBase + @sueldoBrutoBase * 0.30
     else
-      @impuestoGanancias = 0
+      @sueldoBrutoBase
     end
+
+
   end
 
 
-  def afiliadoAlGremio?(valor)
-    if  valor == true
-      @descuentoGremio = 0.01
-    else
-      @descuentoGremio = 0
+  class Capataz < Oficial
+
+    @@PLUS_SALARIO = 4000
+
+    def initialize(hora, valor)
+      @horasTrabajadas = hora
+      @valorXHora = valor * 0.1 + valor
     end
-  end
 
-  def sueldoNeto
-    @sueldoNeto = @sueldoBruto - ((self.sueldoBruto * (0.17 + @descuentoGremio)) - @impuestoGanancias)
-  end
-
-end
-
-
-class Oficial
-
-  def initialize(hora,valor)
-    @horasTrabajadas = hora
-    @valorXHora = valor * 0.1 + valor
-  end
-
-  def impuestoGanancias
-    if self.sueldoBruto > 30000
-      @impuestoGanancias = (self.sueldoBruto - 30000) * 0.2
-    else
-      @impuestoGanancias = 0
-    end
-  end
-
-  def objetivoCumplido?(valor)
-    if  valor == true
-      @sueldoBrutoFinal = (self.sueldoBruto * 0.30) + (self.sueldoBruto / 0.30)
-      @sueldoBrutoFinal = @sueldoBrutoFinal + self.sueldoBruto
-    else
-      @sueldoBrutoFinal = self.sueldoBruto
+    def sueldoBruto
+      @calculoSueldo = super + @@PLUS_SALARIO
     end
 
   end
 
-  def sueldoBruto
-     return @horasTrabajadas * @valorXHora
-  end
 
-  def afiliadoAlGremio?(valor)
-    if  valor == true
-      @descuentoGremio = 0.01
-    else
-      @descuentoGremio = 0
+  class Empresa
+
+    def initialize
+      @@empleados = []
     end
-  end
 
-  def sueldoNeto
-    @sueldoNeto = @sueldoBrutoFinal - ((@sueldoBrutoFinal * (0.17 + @descuentoGremio)) - @impuestoGanancias)
-  end
-
-end
-
-
-class Capataz
-
-  def initialize(hora,valor)
-    @horasTrabajadas = hora
-    @valorXHora = valor * 0.1 + valor
-  end
-
-  def impuestoGanancias
-    if self.sueldoBruto > 30000
-      @impuestoGanancias = (self.sueldoBruto - 30000) * 0.2
-    else
-      @impuestoGanancias = 0
+    def agregarEmpleado(personal)
+      @@empleados.push(personal)
     end
-  end
 
-  def objetivoCumplido?(valor)
-    if  valor == true
-      @sueldoBrutoFinal = (self.sueldoBruto * 0.30) + (self.sueldoBruto / 0.30)
-      @sueldoBrutoFinal = @sueldoBrutoFinal + self.sueldoBruto
-    else
-      @sueldoBrutoFinal = self.sueldoBruto
-    end
-  end
-
-  def sueldoBruto
-    return (@horasTrabajadas * @valorXHora) + 4000
-  end
-
-  def sueldoNeto
-    @sueldoNeto = @sueldoBrutoFinal - ((@sueldoBrutoFinal * 0.17) - @impuestoGanancias)
-  end
-
-end
-
-
-
-class Empresa
-
-  def initialize
-    @@empleados = []
-  end
-
-  def agregarEmpleado(personal)
-    @@empleados.push(personal)
-  end
-
-  def sueldoMasAlto
+    def sueldoMasAlto
       @empleadoSueldos = []
+      @@empleados.max
       @@empleados.each do |empleado|
-         @empleadoSueldos.push(empleado.sueldoNeto)
+        @empleadoSueldos.push(empleado.sueldoNeto)
       end
       @empleadoSueldos.max
-  end
-
-  def sueldoMasBajo
-      @empleadoSueldos = []
-      @@empleados.each do |empleado|
-         @empleadoSueldos.push(empleado.sueldoNeto)
-      end
-      @empleadoSueldos.min
-  end
-
-  def cantidadDeEmpleados
-    return @@empleados.size
-  end
-
-  def cantidadDeEmpleadosTipo(tipo)
-    return @@empleados.count { |x| x.class == tipo }
-  end
-
-  def mediaSueldoBruto
-    @mediaSueldoBruto = 0
-    @@empleados.each do |empleado|
-      @mediaSueldoBruto = @mediaSueldoBruto + empleado.sueldoBruto
     end
-    return @mediaSueldoBruto = @mediaSueldoBruto / @@empleados.size
-  end
 
-
-  def mediaSueldoBrutoTipo(tipo)
-    @mediaSueldoBruto = 0
-    @@empleados.each do |empleado|
-      if empleado.class == tipo
-      @mediaSueldoBruto = @mediaSueldoBruto + empleado.sueldoBruto
-      end
+    def sueldoMasBajo
+      @empleadoSueldoMenor = @@empleados.min_by {|em| em.sueldoNeto}
+      return @emppleadoSueldoMenor.sueldoNeto
     end
-    return @mediaSueldoBruto = @mediaSueldoBruto / @@empleados.count { |x| x.class == tipo }
+
+    def cantidadDeEmpleados
+      return @@empleados.size
+    end
+
+    def cantidadDeEmpleadosTipo(tipo)
+      return @@empleados.count {|x| x.class == tipo}
+    end
+
+    def mediaSueldoBruto
+      @sumaSueldo = @@empleados.sum{ |empleado| empleado.sueldoBruto }
+      return @sumaSueldo / @@empleados.size
+    end
+
+
+    def mediaSueldoBrutoTipo(tipo)
+      @empleadoDeUnTipo = @@empleados.select {|e| e.equal?(tipo)}
+      @sumaSueldo =   @empleadoDeUnTipo.sum{|e| e.sueldoBruto }
+      @sumaSueldo / @empleadoDeUnTipo.size
+    end
+
   end
 
-end
+  pepe = Peon.new(120, 200, true)
+  pepe.sueldoBruto
+  pepe.afiliadoAlGremio?(true)
+  pepe.impuestoGanancias
+  pepe.sueldoNeto
 
-pepe = Peon.new(120,200)
-pepe.sueldoBruto
-pepe.afiliadoAlGremio?(true)
-pepe.impuestoGanancias
-pepe.sueldoNeto
+  lopez = Peon.new(130, 200, true)
+  lopez.sueldoBruto
+  lopez.afiliadoAlGremio?(true)
+  lopez.impuestoGanancias
+  lopez.sueldoNeto
 
-lopez = Peon.new(130,200)
-lopez.sueldoBruto
-lopez.afiliadoAlGremio?(true)
-lopez.impuestoGanancias
-lopez.sueldoNeto
+  homero = Capataz.new(120, 350)
+  homero.sueldoBruto
+  homero.objetivoCumplido?(true)
+  homero.impuestoGanancias
+  homero.sueldoNeto
 
-homero = Capataz.new(120,350)
-homero.sueldoBruto
-homero.objetivoCumplido?(true)
-homero.impuestoGanancias
-homero.sueldoNeto
-
-wenance = Empresa.new
-wenance.agregarEmpleado(pepe)
-wenance.agregarEmpleado(lopez)
-wenance.agregarEmpleado(homero)
+  wenance = Empresa.new
+  wenance.agregarEmpleado(pepe)
+  wenance.agregarEmpleado(lopez)
+  wenance.agregarEmpleado(homero)
